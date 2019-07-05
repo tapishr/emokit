@@ -14,7 +14,7 @@ from .util import validate_data, device_is_emotiv, hid_enumerate, print_hid_enum
 if system_platform == "Windows":
     import pywinusb.hid as hid
 else:
-    import hidapi
+    import pyhidapi
 
 
 class EmotivReader(object):
@@ -32,7 +32,7 @@ class EmotivReader(object):
         self.serial_number = None
         self.lock = Lock()
         if self.platform != "Windows":
-            hidapi.hid_init()
+            pyhidapi.hid_init()
         self.setup_platform = {
             'Windows': self.setup_windows,
             'Darwin': self.setup_not_windows,
@@ -115,11 +115,11 @@ class EmotivReader(object):
                 self.hid.close()
         if system_platform != "Windows":
             try:
-                hidapi.hid_close(source)
+                pyhidapi.hid_close(source)
             except Exception:
                 pass
             try:
-                hidapi.hid_exit()
+                pyhidapi.hid_exit()
             except Exception:
                 pass
         print("Reader stopped...")
@@ -148,7 +148,7 @@ class EmotivReader(object):
         if 'eeg_raw' in self.platform and self.hid is not None:
             self.hid.close()
         elif 'Windows' not in self.platform and self.hid is not None:
-            hidapi.hid_close(self.hid)
+            pyhidapi.hid_close(self.hid)
 
     def setup_reader(self):
         """
@@ -193,12 +193,12 @@ class EmotivReader(object):
             # The decryption is handled by the Linux epoc daemon. We don't need to handle it.
             self.platform += " raw_eeg"
         else:
-            path, serial_number = hid_enumerate(hidapi, self.platform)
+            path, serial_number = hid_enumerate(pyhidapi, self.platform)
             if len(path) == 0:
-                print_hid_enumerate(system_platform, hidapi)
+                print_hid_enumerate(system_platform, pyhidapi)
                 raise Exception("Device not found")
             self.serial_number = serial_number
-            self.hid = hidapi.hid_open_path(path)
+            self.hid = pyhidapi.hid_open_path(path)
 
 
 def read_csv(source):
@@ -233,9 +233,9 @@ def read_non_windows(source, new_format=False):
     # Doesn't seem to matter how big we make the buffer 32 returned every time, 33 for other platforms
     # Set timeout for 1 second, to help with thread shutdown.
     if new_format:
-        data = validate_data(hidapi.hid_read_timeout(source, 64, 1000), new_format)
+        data = validate_data(pyhidapi.hid_read_timeout(source, 64, 1000), new_format)
     else:
-        data = validate_data(hidapi.hid_read_timeout(source, 34, 1000), new_format)
+        data = validate_data(pyhidapi.hid_read_timeout(source, 34, 1000), new_format)
     if data is not None:
         return ''.join(map(chr, data[1:]))
 
